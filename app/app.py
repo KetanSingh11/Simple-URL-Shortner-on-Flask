@@ -19,7 +19,7 @@ class IndexResource(Resource):
 
 
 api.add_resource(IndexResource, "/")
-api.add_resource(UserResource, "/users")
+api.add_resource(UserResource, "/user")
 
 if __name__ == "__main__":
     print("Starting MAIN()")

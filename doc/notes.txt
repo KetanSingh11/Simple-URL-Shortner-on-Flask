@@ -1,0 +1,19 @@
+::NOTES::
+----------
+
+
+User Table (id, first_name, last_name, username, password)
+URL Table
+
+
+Endpoints :-
+--------------
+
+POST /auth (login)  --> generates token, takes 2 params (username, password)
+
+GET /users  --> should list out all users
+
+GET     /user   --> list the same user
+POST    /user   --> create new user
+PUT     /user   --> update user fields
+DELETE  /user   --> delete user

@@ -1,4 +1,4 @@
-from flask_restful import Resource
+from flask_restful import Resource, reqparse
 from flask_jwt import jwt_required, current_identity
 import sqlite3
 
@@ -11,7 +11,7 @@ class User(object):
         self.password = password
 
     def __str__(self):
-        return "User(id='%s', username='%s')" % (self.id, self.username)
+        return "User(id='{}', username='{}')".format(self.id, self.username)
 
     @classmethod
     def find_user_by_username(cls, username):
@@ -49,6 +49,46 @@ class User(object):
 
 
 class UserResource(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument("username",
+                       type=str,
+                       required=True,
+                       help="This field is required."
+                       )
+    parser.add_argument("password",
+                        type=str,
+                        required=True,
+                        help="This field is required."
+                        )
+    parser.add_argument("first_name",
+                        type=str,
+                        required=False,
+                        help="First Name."
+                        )
+    parser.add_argument("last_name",
+                        type=str,
+                        required=False,
+                        help="Last Name."
+                        )
+
     @jwt_required()
     def get(self):
-        return {"message": str(current_identity)}
+        return {"user": str(current_identity)}
+
+    def post(self):
+        data = UserResource.parser.parse_args()
+        connection = sqlite3.connect("data.db")
+        cursor = connection.cursor()
+        query = "INSERT INTO users VALUES (Null, ?, ?, ?, ?)"
+        cursor.execute(query, (data['first_name'], data['last_name'],
+                                        data['username'], data['password'],))
+        connection.commit()
+        connection.close()
+
+        return {"message": "User created Successfully"}, 201
+
+    def put(self):
+        pass
+
+    def delete(self):
+        pass
