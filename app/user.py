@@ -18,7 +18,7 @@ class User(object):
         print("calling find_user_by_username()")
         connection = sqlite3.connect("data.db")
         cursor = connection.cursor()
-        query = "SELECT * FROM users WHERE username = ?"
+        query = "SELECT * FROM users WHERE username = ?;"
         result = cursor.execute(query, (username,))
 
         row = result.fetchone()
@@ -35,7 +35,7 @@ class User(object):
         print("calling find_user_by_id()")
         connection = sqlite3.connect("data.db")
         cursor = connection.cursor()
-        query = "SELECT * FROM users WHERE id = ?"
+        query = "SELECT * FROM users WHERE id = ?;"
         result = cursor.execute(query, (id,))
 
         row = result.fetchone()
@@ -83,7 +83,7 @@ class UserResource(Resource):
 
         connection = sqlite3.connect("data.db")
         cursor = connection.cursor()
-        query = "INSERT INTO users VALUES (Null, ?, ?, ?, ?)"
+        query = "INSERT INTO users VALUES (Null, ?, ?, ?, ?);"
         cursor.execute(query, (data['first_name'], data['last_name'],
                                         data['username'], data['password'],))
         connection.commit()
@@ -91,8 +91,55 @@ class UserResource(Resource):
 
         return {"message": "User created Successfully"}, 201
 
+    @jwt_required()
     def put(self):
-        pass
+        ''' jwt is required in-order to update self '''
+        put_parser = UserResource.parser.copy()
+        put_parser.remove_argument('password')  # password cannot be updated like this, so removing.
+                                                # if provided in payload, silently ignore.
 
+        # updates first_name, last_name
+        data = put_parser.parse_args()
+        if not User.find_user_by_username(data['username']):
+            return {"message": "The username does not exist"}, 400
+
+        connection = sqlite3.connect("data.db")
+        cursor = connection.cursor()
+
+        base_query = "UPDATE users SET"
+        if data['first_name']:
+            query = "{} first_name=? WHERE username=?;".format(base_query)
+            cursor.execute(query, (data['first_name'], data['username']))
+        if data['last_name']:
+            query = "{} last_name=? WHERE username=?;".format(base_query)
+            cursor.execute(query, (data['last_name'], data['username']))
+
+        connection.commit()
+        connection.close()
+
+        return {"message": "User updated Successfully"}, 200
+
+    @jwt_required()
     def delete(self):
-        pass
+        ''' jwt is required in-order to delete self
+            password is also required to delete self
+        '''
+        data = UserResource.parser.parse_args()
+
+        if not User.find_user_by_username(data['username']):
+            return {"message": "The username does not exist"}, 404
+
+        if User.find_user_by_username(data['username']).password != data['password']:
+            return {"message": "Incorrect password!"}
+
+        connection = sqlite3.connect("data.db")
+        cursor = connection.cursor()
+
+        query = "DELETE FROM users WHERE username=?"
+        cursor.execute(query, (data['username'],))
+
+        connection.commit()
+        connection.close()
+
+        return {"message": "User Deleted Successfully", "user": data['username']}, 200
+
