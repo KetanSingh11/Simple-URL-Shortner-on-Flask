@@ -4,6 +4,7 @@ from flask_jwt import JWT, jwt_required
 from security import authenticate, identity
 from user import UserResource
 from users import UsersResource
+from url import UrlResource
 
 app = Flask(__name__)
 app.secret_key = "k101011"
@@ -22,6 +23,7 @@ class IndexResource(Resource):
 api.add_resource(IndexResource, "/")
 api.add_resource(UserResource, "/user")
 api.add_resource(UsersResource, "/users")
+api.add_resource(UrlResource, "/shorten")
 
 if __name__ == "__main__":
     print("Starting MAIN()")

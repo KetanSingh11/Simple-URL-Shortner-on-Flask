@@ -2,8 +2,9 @@
 ----------
 
 
-User Table (id, first_name, last_name, username, password)
-URL Table
+User Table (id PK, first_name, last_name, username, password)
+URL Table (id, long_url PK, short_url)
+users_urls_xref (user_id, long_url_id)
 
 
 Endpoints :-
