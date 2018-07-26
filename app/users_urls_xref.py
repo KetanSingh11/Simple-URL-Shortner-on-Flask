@@ -22,7 +22,7 @@ class Users_Urls_Xref(object):
     def insert(self):
         connection = sqlite3.connect("data.db")
         cursor = connection.cursor()
-        query = "INSERT INTO users_urls_xref VALUES (?, ?);"
+        query = "INSERT INTO users_urls_xref (user_id, url_id) VALUES (?, ?);"
         cursor.execute(query, (self.user_id, self.url_id))
         connection.commit()
         connection.close()

@@ -2,6 +2,7 @@ import sqlite3
 from flask_restful import Resource, reqparse
 from flask_jwt import jwt_required, current_identity
 from users_urls_xref import Users_Urls_Xref
+import url_shorten_engine
 
 class Url(object):
     def __init__(self, _id, long_url, short_url):
@@ -41,6 +42,32 @@ class Url(object):
         connection.close()
         return url
 
+    @classmethod
+    def get_max_id_in_table(cls):
+        connection = sqlite3.connect("data.db")
+        cursor = connection.cursor()
+        query = "SELECT MAX(id) FROM urls;"
+        result = cursor.execute(query)
+
+        max_id = 1
+        row = result.fetchone()
+        if row[0] != None:
+            max_id = row[0] + 1     #to-be the new id
+
+        connection.close()
+        return max_id
+
+    @classmethod
+    def insert(cls, long_url, short_url):
+        connection = sqlite3.connect("data.db")
+        cursor = connection.cursor()
+        query = "INSERT INTO urls ('long_url', 'short_url') VALUES (?, ?);"
+        result = cursor.execute(query, (long_url, short_url))
+
+        connection.commit()
+        connection.close()
+        return result.lastrowid
+
 
 class UrlResource(Resource):
     parser = reqparse.RequestParser()
@@ -63,6 +90,7 @@ class UrlResource(Resource):
     @jwt_required()
     def post(self):
         data = UrlResource.parser.parse_args()
+
         existing_url = Url.get_url_set_by_long_url(data['long_url'])
         if existing_url:
             # re-use already shortened value
@@ -70,10 +98,21 @@ class UrlResource(Resource):
             new_uuxref = Users_Urls_Xref(current_identity.id, existing_url.id)
             if not new_uuxref.exists():
                 new_uuxref.insert()
-                return {"message": "URL already shortened previously, using that old value."}, 201
+                return {"message": "URL already shortened previously, using that short value."}, 201
             else:
-                return {"message": "This User already has shortened this URL."}, 200
+                return {"message": "This User had shortened this URL before... Duplicate Request."}, 200
+        else:
+            ''' this is a completely new long_url, shorten '''
+            short_url = url_shorten_engine.shorten(Url.get_max_id_in_table())
+            # write to url table first, so to create id
+            new_url_id = Url.insert(data['long_url'], short_url)
+            # write to xref table
+            new_uuxref = Users_Urls_Xref(current_identity.id, new_url_id)
+            new_uuxref.insert()
+            return {"message": "Url Shortened", "Long URL": data['long_url'], "Short URL": short_url}, 201
 
 
     def delete(self):
+        # might not need this mostly
+        # deleting xref between user and url should do the job?
         pass
